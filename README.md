@@ -7,6 +7,11 @@ Docs: [`docs/RULES.md`](docs/RULES.md) (business rules), [`docs/openapi.yaml`](d
 the additions listed at the end), [`docs/SEED_SCENARIOS.md`](docs/SEED_SCENARIOS.md) (sample data),
 [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) (5-minute walkthrough), `docs/screenshots/` (UI check output).
 
+## AI assistance disclosure
+
+This project was built with an AI coding assistant (Claude Code). The commits carry `Co-Authored-By` trailers
+recording that. The tests, browser checks and results reported in this README were run against the code as committed.
+
 ## 1. Run the demo first
 
 Needs JDK 17+ and Node 18+. Two terminals:
