@@ -54,6 +54,10 @@ public class LeaveRequest {
     private Instant createdAt;
     private Instant lastActionAt;
 
+    /** Optimistic lock: two people deciding the same request at once, the second gets 409. */
+    @Version
+    private Long version;
+
     @OneToMany(mappedBy = "request", fetch = FetchType.LAZY)
     @OrderBy("id ASC")
     private List<ApprovalStep> steps = new ArrayList<>();
