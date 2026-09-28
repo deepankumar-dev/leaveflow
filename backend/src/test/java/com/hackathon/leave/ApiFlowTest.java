@@ -459,6 +459,16 @@ class ApiFlowTest {
     }
 
     @Test
+    @DisplayName("directory lists teams and managers for pickers, to managers and HR only")
+    void directory() throws Exception {
+        getAs(login("priya"), "/api/directory").andExpect(status().isOk())
+                .andExpect(jsonPath("$.teams.length()").value(3))
+                .andExpect(jsonPath("$.managers.length()").value(2));
+        getAs(login("meena"), "/api/directory").andExpect(status().isOk());
+        getAs(login("asha"), "/api/directory").andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("errors never leak stack traces and always use {code, message, details}")
     void errorEnvelope() throws Exception {
         postAs(login("asha"), "/api/leaves", "{\"leaveTypeCode\":\"ANNUAL\"}")
