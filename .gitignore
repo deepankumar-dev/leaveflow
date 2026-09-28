@@ -2,3 +2,4 @@ _archive/
 target/
 data/
 *.log
+.env

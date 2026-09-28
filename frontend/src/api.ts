@@ -14,6 +14,8 @@ export interface User {
   managerId: number | null
   managerName: string | null
   joinDate: string
+  active: boolean
+  mustChangePassword: boolean
 }
 export interface Step {
   id: number
@@ -148,6 +150,17 @@ export interface Forecast {
   days: { date: string; workingDay: boolean; approvedAway: number; pendingAway: number; projectedAwayPercent: number }[]
 }
 
+export interface PersonInput {
+  name: string
+  email: string
+  role: Role
+  teamId: number | null
+  managerId: number | null
+  joinDate: string
+  password?: string
+  active?: boolean
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details: string[] = []) {
     super(message)
@@ -193,7 +206,15 @@ const qs = (params: Record<string, string | number | undefined>) => {
 export const api = {
   login: (email: string, password: string) =>
     request<{ token: string; user: User }>('POST', '/api/auth/login', { email, password }),
+  config: () => request<{ demoMode: boolean; appName: string }>('GET', '/api/public/config'),
   me: () => request<User>('GET', '/api/auth/me'),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ token: string; user: User }>('POST', '/api/auth/change-password', { currentPassword, newPassword }),
+  people: () => request<User[]>('GET', '/api/admin/users'),
+  createPerson: (p: PersonInput) => request<User>('POST', '/api/admin/users', p),
+  updatePerson: (id: number, p: PersonInput) => request<User>('PUT', `/api/admin/users/${id}`, p),
+  resetPassword: (id: number, password: string) => request<void>('POST', `/api/admin/users/${id}/reset-password`, { password }),
+  createTeam: (name: string) => request<{ id: number; name: string; size: number }>('POST', '/api/admin/teams', { name }),
   balances: () => request<Balance[]>('GET', '/api/balances/me'),
   preview: (leaveTypeCode: string, fromDate: string, toDate: string) =>
     request<Preview>('POST', '/api/leaves/preview', { leaveTypeCode, fromDate, toDate }),

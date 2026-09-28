@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { useToast } from '../components/Toast'
+import { useConfig } from '../components/useConfig'
 import { home } from '../App'
 
 const DEMO = [
@@ -14,6 +15,7 @@ const DEMO_PASSWORD = 'Password@123'
 
 export default function Login() {
   const { login } = useAuth()
+  const { demoMode } = useConfig()
   const toast = useToast()
   const nav = useNavigate()
   const [email, setEmail] = useState('')
@@ -46,19 +48,23 @@ export default function Login() {
         </div>
 
         <div className="card p-6">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">Demo: sign in with one click</p>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO.map((d) => (
-              <button key={d.email} className="btn-secondary !flex-col !items-start !gap-0 !py-2.5 text-left" disabled={busy} onClick={() => go(d.email, DEMO_PASSWORD)}>
-                <span className="text-sm font-semibold">{d.label} ({d.who})</span>
-                <span className="text-xs font-normal text-slate-500">{d.hint}</span>
-              </button>
-            ))}
-          </div>
+          {demoMode && (
+            <>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">Demo: sign in with one click</p>
+              <div className="grid grid-cols-2 gap-2">
+                {DEMO.map((d) => (
+                  <button key={d.email} className="btn-secondary !flex-col !items-start !gap-0 !py-2.5 text-left" disabled={busy} onClick={() => go(d.email, DEMO_PASSWORD)}>
+                    <span className="text-sm font-semibold">{d.label} ({d.who})</span>
+                    <span className="text-xs font-normal text-slate-500">{d.hint}</span>
+                  </button>
+                ))}
+              </div>
 
-          <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
-            <span className="h-px flex-1 bg-slate-200" /> or <span className="h-px flex-1 bg-slate-200" />
-          </div>
+              <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
+                <span className="h-px flex-1 bg-slate-200" /> or <span className="h-px flex-1 bg-slate-200" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={submit} className="space-y-3">
             <div>

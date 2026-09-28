@@ -5,6 +5,7 @@ import { api, type Role } from '../api'
 import { useAuth } from '../auth'
 import { RequestDrawer } from './RequestDrawer'
 import { useToast } from './Toast'
+import { useConfig } from './useConfig'
 import { fmtDateTime } from './ui'
 
 const DrawerCtx = createContext<(id: number) => void>(() => {})
@@ -23,6 +24,7 @@ const NAV: NavItem[] = [
   { to: '/hr/queue', label: 'HR queue', roles: ['HR'] },
   { to: '/hr/escalations', label: 'Escalations', roles: ['HR'] },
   { to: '/hr/analytics', label: 'Analytics', roles: ['HR'] },
+  { to: '/hr/people', label: 'People & teams', roles: ['HR'] },
   { to: '/hr/holidays', label: 'Holidays', roles: ['HR'] },
   { to: '/apply', label: 'Apply for leave', roles: ['EMPLOYEE', 'MANAGER', 'HR'] },
   { to: '/balances', label: 'My balances', roles: ['EMPLOYEE', 'MANAGER', 'HR'] },
@@ -76,6 +78,7 @@ export default function Layout() {
   const qc = useQueryClient()
   const toast = useToast()
   const [openId, setOpenId] = useState<number | null>(null)
+  const { demoMode } = useConfig()
   const navigate = useNavigate()
   const location = useLocation()
   const reset = useMutation({
@@ -108,7 +111,7 @@ export default function Layout() {
               </NavLink>
             ))}
           </nav>
-          {user.role === 'HR' && (
+          {user.role === 'HR' && demoMode && (
             <button className="btn-secondary mb-3 text-xs" disabled={reset.isPending} onClick={() => reset.mutate()}>
               ↺ Reset demo data
             </button>
@@ -116,7 +119,10 @@ export default function Layout() {
           <div className="border-t border-slate-200 pt-3 text-sm">
             <p className="font-medium text-slate-800">{user.name}</p>
             <p className="text-xs text-slate-500">{user.role.toLowerCase()} · {user.teamName}</p>
-            <button className="mt-2 text-xs font-medium text-indigo-600 hover:underline" onClick={logout}>Sign out</button>
+            <div className="mt-2 flex gap-3">
+              <NavLink to="/password" className="text-xs font-medium text-slate-500 hover:underline">Change password</NavLink>
+              <button className="text-xs font-medium text-indigo-600 hover:underline" onClick={logout}>Sign out</button>
+            </div>
           </div>
         </aside>
 

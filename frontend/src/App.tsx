@@ -14,6 +14,8 @@ import Delegations from './pages/Delegations'
 import HrQueue from './pages/HrQueue'
 import Analytics from './pages/Analytics'
 import Holidays from './pages/Holidays'
+import People from './pages/People'
+import ChangePassword from './pages/ChangePassword'
 
 export const home = (role: Role) => (role === 'MANAGER' ? '/inbox' : role === 'HR' ? '/hr/queue' : '/apply')
 
@@ -28,6 +30,8 @@ function Guard({ roles, children }: { roles: Role[]; children: ReactNode }) {
 export default function App() {
   const { user, loading } = useAuth()
   if (loading) return <Spinner />
+  // A new or reset account can do nothing else until it has chosen its own password (the server enforces this too).
+  if (user?.mustChangePassword) return <ChangePassword forced />
 
   const all: Role[] = ['EMPLOYEE', 'MANAGER', 'HR']
   return (
@@ -43,6 +47,8 @@ export default function App() {
         <Route path="/hr/queue" element={<Guard roles={['HR']}><HrQueue mode="queue" /></Guard>} />
         <Route path="/hr/escalations" element={<Guard roles={['HR']}><HrQueue mode="escalations" /></Guard>} />
         <Route path="/hr/analytics" element={<Guard roles={['HR']}><Analytics /></Guard>} />
+        <Route path="/password" element={<Guard roles={all}><ChangePassword /></Guard>} />
+        <Route path="/hr/people" element={<Guard roles={['HR']}><People /></Guard>} />
         <Route path="/hr/holidays" element={<Guard roles={['HR']}><Holidays /></Guard>} />
       </Route>
       <Route path="*" element={<Navigate to={user ? home(user.role) : '/login'} replace />} />

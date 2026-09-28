@@ -7,6 +7,8 @@ interface AuthState {
   loading: boolean
   login: (email: string, password: string) => Promise<User>
   logout: () => void
+  /** Adopt a fresh token and user (after changing the password). */
+  setSession: (token: string, user: User) => void
 }
 
 const Ctx = createContext<AuthState | null>(null)
@@ -43,7 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [qc],
   )
 
-  return <Ctx.Provider value={{ user, loading, login, logout }}>{children}</Ctx.Provider>
+  const setSession = useCallback((token: string, u: User) => {
+    setToken(token)
+    setUser(u)
+  }, [])
+
+  return <Ctx.Provider value={{ user, loading, login, logout, setSession }}>{children}</Ctx.Provider>
 }
 
 export function useAuth() {

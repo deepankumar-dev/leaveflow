@@ -12,7 +12,7 @@ const pad = (n: number) => String(n).padStart(2, '0')
 export default function TeamCalendar() {
   const { user } = useAuth()
   const open = useOpenRequest()
-  const [month, setMonth] = useState('2026-11')
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
   const [teamId, setTeamId] = useState<number | undefined>()
 
   const dir = useQuery({ queryKey: ['directory'], queryFn: api.directory, enabled: user?.role === 'HR' })

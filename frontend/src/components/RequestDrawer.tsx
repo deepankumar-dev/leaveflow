@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { useToast } from './Toast'
+import { useConfig } from './useConfig'
 import { ErrorBox, FlagBadge, Spinner, StatusBadge, fmtDateTime, fmtDays, fmtRange } from './ui'
 
 const ACTION_LABEL: Record<string, string> = {
@@ -21,6 +22,7 @@ export function RequestDrawer({ id, onClose }: { id: number; onClose: () => void
   const { user } = useAuth()
   const qc = useQueryClient()
   const toast = useToast()
+  const { demoMode } = useConfig()
   const [comment, setComment] = useState('')
 
   const req = useQuery({ queryKey: ['request', id], queryFn: () => api.request(id) })
@@ -39,7 +41,7 @@ export function RequestDrawer({ id, onClose }: { id: number; onClose: () => void
 
   const r = req.data
   const busy = approve.isPending || reject.isPending || cancel.isPending || timeout.isPending
-  const canDemoTimeout = r?.status === 'PENDING_MANAGER' && (user?.role === 'MANAGER' || user?.role === 'HR')
+  const canDemoTimeout = demoMode && r?.status === 'PENDING_MANAGER' && (user?.role === 'MANAGER' || user?.role === 'HR')
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/30" onClick={onClose}>
