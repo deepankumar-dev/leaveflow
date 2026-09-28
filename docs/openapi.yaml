@@ -1,0 +1,1098 @@
+openapi: 3.1.0
+info:
+  title: Leave Management API
+  description: "Leave requests with a Manager → HR approval chain, escalation, delegation\
+    \ and conflict flags."
+  version: "1.0"
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+paths:
+  /api/notifications/{id}/read:
+    post:
+      tags:
+      - Notifications
+      summary: Mark one of the caller's notifications as read
+      operationId: markRead
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NotificationDto"
+      security:
+      - bearerAuth: []
+  /api/leaves:
+    post:
+      tags:
+      - Leaves
+      summary: Apply for leave; reserves balance as pending and starts the approval
+        chain
+      operationId: apply
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeaveApplyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/leaves/{id}/reject:
+    post:
+      tags:
+      - Leaves
+      summary: Reject the caller's current step; a comment is required
+      operationId: reject
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/leaves/{id}/cancel:
+    post:
+      tags:
+      - Leaves
+      summary: Cancel own request (pending or approved); releases the reserved/used
+        balance
+      operationId: cancel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/leaves/{id}/approve:
+    post:
+      tags:
+      - Leaves
+      summary: Approve the caller's current step (manager or HR); nobody decides their
+        own request
+      operationId: approve
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/leaves/preview:
+    post:
+      tags:
+      - Leaves
+      summary: "Dry-run an application: working days, balance, conflict flag; never\
+        \ persists"
+      operationId: preview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeavePreviewRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LeavePreviewResponse"
+      security:
+      - bearerAuth: []
+  /api/holidays:
+    get:
+      tags:
+      - Holidays
+      summary: "All holidays, by date"
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HolidayDto"
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - Holidays
+      summary: Add a holiday (HR only)
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HolidayRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/HolidayDto"
+      security:
+      - bearerAuth: []
+  /api/demo/simulate-timeout/{id}:
+    post:
+      tags:
+      - Demo
+      summary: "Force the manager step of a pending request to time out now, so escalation\
+        \ can be shown live"
+      operationId: simulateTimeout
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/demo/reset-seed:
+    post:
+      tags:
+      - Demo
+      summary: Wipe and reload the fixed seed scenarios (HR only)
+      operationId: resetSeed
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ResetSeedResponse"
+      security:
+      - bearerAuth: []
+  /api/delegations:
+    get:
+      tags:
+      - Delegations
+      summary: The caller's active delegations (given by them)
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DelegationDto"
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - Delegations
+      summary: Delegate the caller's manager approvals to another manager for a date
+        range
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DelegationRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DelegationDto"
+      security:
+      - bearerAuth: []
+  /api/auth/login:
+    post:
+      tags:
+      - Auth
+      summary: Log in with email and password; returns a JWT (public endpoint)
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+  /api/notifications:
+    get:
+      tags:
+      - Notifications
+      summary: "The caller's in-app notifications, newest first"
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NotificationDto"
+      security:
+      - bearerAuth: []
+  /api/manager/requests:
+    get:
+      tags:
+      - Manager
+      summary: "Requests in the caller's approval scope (own team plus delegated),\
+        \ filterable and paged"
+      operationId: requests
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - PENDING_MANAGER
+          - ESCALATED
+          - PENDING_HR
+          - APPROVED
+          - REJECTED
+          - CANCELLED
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          default: "createdAt,desc"
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageResponseLeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/leaves/{id}:
+    get:
+      tags:
+      - Leaves
+      summary: "One request (owner, their manager, or HR)"
+      operationId: get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/leaves/{id}/timeline:
+    get:
+      tags:
+      - Leaves
+      summary: "Audit timeline of a request, oldest first"
+      operationId: timeline
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineEventDto"
+      security:
+      - bearerAuth: []
+  /api/leaves/mine:
+    get:
+      tags:
+      - Leaves
+      summary: "The caller's own leave requests, newest first"
+      operationId: mine
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/hr/requests:
+    get:
+      tags:
+      - HR
+      summary: "All requests organisation-wide, filterable and paged"
+      operationId: requests_1
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - PENDING_MANAGER
+          - ESCALATED
+          - PENDING_HR
+          - APPROVED
+          - REJECTED
+          - CANCELLED
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          default: "createdAt,desc"
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageResponseLeaveRequestDto"
+      security:
+      - bearerAuth: []
+  /api/calendar/team:
+    get:
+      tags:
+      - Calendar
+      summary: Team leave calendar for a month
+      operationId: team
+      parameters:
+      - name: month
+        in: query
+        description: yyyy-MM
+        required: true
+        schema:
+          type: string
+        example: 2026-11
+      - name: teamId
+        in: query
+        description: "HR only: which team; others always get their own"
+        required: false
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TeamCalendarDto"
+      security:
+      - bearerAuth: []
+  /api/balances/me:
+    get:
+      tags:
+      - Balances
+      summary: "The caller's balances for the current year, with pro-rata explanation"
+      operationId: mine_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BalanceDto"
+      security:
+      - bearerAuth: []
+  /api/auth/me:
+    get:
+      tags:
+      - Auth
+      summary: The currently authenticated user
+      operationId: me
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserDto"
+      security:
+      - bearerAuth: []
+  /api/analytics/summary:
+    get:
+      tags:
+      - Analytics
+      summary: Organisation-wide leave analytics summary
+      operationId: summary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummaryDto"
+      security:
+      - bearerAuth: []
+  /api/delegations/{id}:
+    delete:
+      tags:
+      - Delegations
+      summary: Revoke a delegation
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+components:
+  schemas:
+    NotificationDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        message:
+          type: string
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        relatedRequestId:
+          type: integer
+          format: int64
+    LeaveApplyRequest:
+      type: object
+      properties:
+        leaveTypeCode:
+          type: string
+          minLength: 1
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        reason:
+          type: string
+          maxLength: 1000
+          minLength: 0
+      required:
+      - fromDate
+      - leaveTypeCode
+      - toDate
+    ApprovalStepDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        stage:
+          type: string
+          enum:
+          - MANAGER
+          - HR
+        assigneeId:
+          type: integer
+          format: int64
+        assigneeName:
+          type: string
+        delegatedFromName:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+        decision:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REJECTED
+          - ESCALATED
+        decidedAt:
+          type: string
+          format: date-time
+        comment:
+          type: string
+    LeaveRequestDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        employeeId:
+          type: integer
+          format: int64
+        employeeName:
+          type: string
+        teamName:
+          type: string
+        leaveTypeCode:
+          type: string
+        leaveTypeName:
+          type: string
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        days:
+          type: number
+        reason:
+          type: string
+        status:
+          type: string
+          enum:
+          - PENDING_MANAGER
+          - ESCALATED
+          - PENDING_HR
+          - APPROVED
+          - REJECTED
+          - CANCELLED
+        flagged:
+          type: boolean
+        flagReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastActionAt:
+          type: string
+          format: date-time
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalStepDto"
+        canApprove:
+          type: boolean
+        canCancel:
+          type: boolean
+    DecisionRequest:
+      type: object
+      properties:
+        comment:
+          type: string
+          maxLength: 1000
+          minLength: 0
+    LeavePreviewRequest:
+      type: object
+      properties:
+        leaveTypeCode:
+          type: string
+          minLength: 1
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+      required:
+      - fromDate
+      - leaveTypeCode
+      - toDate
+    LeavePreviewResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+        workingDays:
+          type: number
+        balanceAvailable:
+          type: number
+        balanceAfter:
+          type: number
+        balanceExplanation:
+          type: string
+        conflictFlagged:
+          type: boolean
+        conflictReason:
+          type: string
+        overlappingTeammates:
+          type: array
+          items:
+            type: string
+        teamSize:
+          type: integer
+          format: int32
+    HolidayRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        name:
+          type: string
+          minLength: 1
+      required:
+      - date
+      - name
+    HolidayDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        date:
+          type: string
+          format: date
+        name:
+          type: string
+    ResetSeedResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        users:
+          type: integer
+          format: int32
+        requests:
+          type: integer
+          format: int32
+    DelegationRequest:
+      type: object
+      properties:
+        delegateId:
+          type: integer
+          format: int64
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+      required:
+      - delegateId
+      - fromDate
+      - toDate
+    DelegationDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        delegatorId:
+          type: integer
+          format: int64
+        delegatorName:
+          type: string
+        delegateId:
+          type: integer
+          format: int64
+        delegateName:
+          type: string
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        active:
+          type: boolean
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+      - email
+      - password
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        expiresInSeconds:
+          type: integer
+          format: int64
+        user:
+          $ref: "#/components/schemas/UserDto"
+    UserDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+          - EMPLOYEE
+          - MANAGER
+          - HR
+        teamId:
+          type: integer
+          format: int64
+        teamName:
+          type: string
+        managerId:
+          type: integer
+          format: int64
+        managerName:
+          type: string
+        joinDate:
+          type: string
+          format: date
+    PageResponseLeaveRequestDto:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaveRequestDto"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+    TimelineEventDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        action:
+          type: string
+        actorName:
+          type: string
+        fromStatus:
+          type: string
+          enum:
+          - PENDING_MANAGER
+          - ESCALATED
+          - PENDING_HR
+          - APPROVED
+          - REJECTED
+          - CANCELLED
+        toStatus:
+          type: string
+          enum:
+          - PENDING_MANAGER
+          - ESCALATED
+          - PENDING_HR
+          - APPROVED
+          - REJECTED
+          - CANCELLED
+        comment:
+          type: string
+        at:
+          type: string
+          format: date-time
+    CalendarEntryDto:
+      type: object
+      properties:
+        requestId:
+          type: integer
+          format: int64
+        employeeId:
+          type: integer
+          format: int64
+        employeeName:
+          type: string
+        leaveTypeCode:
+          type: string
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+          - PENDING_MANAGER
+          - ESCALATED
+          - PENDING_HR
+          - APPROVED
+          - REJECTED
+          - CANCELLED
+        flagged:
+          type: boolean
+    TeamCalendarDto:
+      type: object
+      properties:
+        month:
+          type: string
+        teamId:
+          type: integer
+          format: int64
+        teamName:
+          type: string
+        teamSize:
+          type: integer
+          format: int32
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarEntryDto"
+        holidays:
+          type: array
+          items:
+            $ref: "#/components/schemas/HolidayDto"
+    BalanceDto:
+      type: object
+      properties:
+        leaveTypeCode:
+          type: string
+        leaveTypeName:
+          type: string
+        year:
+          type: integer
+          format: int32
+        entitled:
+          type: number
+        used:
+          type: number
+        pending:
+          type: number
+        available:
+          type: number
+        tracked:
+          type: boolean
+        explanation:
+          type: string
+    AnalyticsSummaryDto:
+      type: object
+      properties:
+        totalRequests:
+          type: integer
+          format: int64
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        byLeaveType:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        flaggedCount:
+          type: integer
+          format: int64
+        escalatedCount:
+          type: integer
+          format: int64
+        avgDecisionHours:
+          type: number
+          format: double
+        monthlyTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthlyPoint"
+        teamLoad:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamLoad"
+    MonthlyPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        days:
+          type: number
+          format: double
+        requests:
+          type: integer
+          format: int64
+    TeamLoad:
+      type: object
+      properties:
+        teamName:
+          type: string
+        pending:
+          type: integer
+          format: int64
+        approved:
+          type: integer
+          format: int64
+        flagged:
+          type: integer
+          format: int64
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

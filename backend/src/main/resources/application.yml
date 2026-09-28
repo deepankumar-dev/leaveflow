@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: leave
+  datasource:
+    url: jdbc:h2:mem:leavedb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    show-sql: false
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+leave:
+  annual-quota-default: 24
+  escalation-timeout-minutes: 1
+  escalation-check-seconds: 30
+  conflict-threshold: 0.30
+  jwt:
+    secret: ${JWT_SECRET:change-me-please-use-a-long-random-secret-at-least-32-bytes}
+    expiry-minutes: 480
