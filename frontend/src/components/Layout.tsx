@@ -75,7 +75,6 @@ function Bell({ onOpen }: { onOpen: (id: number) => void }) {
 
 export default function Layout() {
   const { user, logout } = useAuth()
-  const qc = useQueryClient()
   const toast = useToast()
   const [openId, setOpenId] = useState<number | null>(null)
   const { demoMode } = useConfig()
@@ -84,8 +83,9 @@ export default function Layout() {
   const reset = useMutation({
     mutationFn: api.resetSeed,
     onSuccess: () => {
-      toast.success('Demo data reloaded')
-      qc.invalidateQueries()
+      // The reset recreates every user with a new id, so the current session is stale: sign in again.
+      toast.success('Demo data reloaded. Please sign in again.')
+      logout()
     },
     onError: toast.error,
   })
