@@ -82,14 +82,13 @@ flowchart LR
 2. **Conflict flag (40s).** Sign in as *Asha* → Apply, Annual, 4–5 Nov 2026: the live check flags team coverage and
    offers "Try these dates instead". Submitting is still allowed.
 3. **Approval chain + delegation (50s).** *Priya* → Inbox: Arjun's requests are here because he delegated to her. Open
-   one: approval chain, audit timeline, highlighted workflow diagram. Approve; sign in as *Meena* and give the final approval.
+   one: approval chain, audit timeline. Approve; sign in as *Meena* and give the final approval.
 4. **Escalation (40s).** As *Priya* open Ravi's request → "Simulate timeout". It becomes *Escalated to HR*; *Meena* sees
    it under Escalations. (Real timeouts fire after 1 minute for new requests.)
 5. **HR view (20s).** Meena → Analytics: trend, status mix, escalation rate, team load.
 
 ## Known gaps
 
-- No team-capacity forecast chart, carry-forward, or `/api/workflow/definition`; the UI draws the diagram from the
   documented transitions.
 - Suggested alternative dates are found by the browser probing shifted windows through the preview endpoint, not by a
   dedicated backend search.

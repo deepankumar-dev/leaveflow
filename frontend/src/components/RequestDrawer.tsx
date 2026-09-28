@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { StateDiagram } from './StateDiagram'
 import { useToast } from './Toast'
 import { ErrorBox, FlagBadge, Spinner, StatusBadge, fmtDateTime, fmtDays, fmtRange } from './ui'
 
@@ -95,11 +94,6 @@ export function RequestDrawer({ id, onClose }: { id: number; onClose: () => void
                   </li>
                 ))}
               </ol>
-            </section>
-
-            <section>
-              <h3 className="mb-2 text-sm font-semibold text-slate-700">Workflow</h3>
-              <StateDiagram current={r.status} />
             </section>
 
             <section>
