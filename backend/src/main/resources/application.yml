@@ -3,6 +3,9 @@
 spring:
   application:
     name: leave
+  autoconfigure:
+    # Authentication is our own JWT filter; do not let Spring create a default user with a generated password.
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
     # Persistent file database by default (zero setup). For production use the "postgres" profile.
     url: ${DB_URL:jdbc:h2:file:./data/leaveflow;AUTO_SERVER=TRUE}
