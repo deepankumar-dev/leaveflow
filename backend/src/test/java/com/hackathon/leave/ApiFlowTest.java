@@ -469,6 +469,27 @@ class ApiFlowTest {
     }
 
     @Test
+    @DisplayName("forecast: 30 days from 'today', approved and pending counted separately, HR only")
+    void forecast() throws Exception {
+        long eng = jdbc.queryForObject("select id from teams where name = 'Engineering'", Long.class);
+        // Seed today is Mon 12 Oct. Sam's R04 (4-5 Nov) is pending; Asha's R01 (26-28 Oct) is approved.
+        String body = getAs(login("meena"), "/api/analytics/forecast?teamId=" + eng + "&days=30").andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamSize").value(7)).andExpect(jsonPath("$.days.length()").value(30))
+                .andExpect(jsonPath("$.thresholdPercent").value(30.0)).andReturn().getResponse().getContentAsString();
+        JsonNode days = json.readTree(body).get("days");
+        JsonNode oct27 = null;
+        JsonNode nov4 = null;
+        for (JsonNode d : days) {
+            if (d.get("date").asText().equals("2026-10-27")) oct27 = d;
+            if (d.get("date").asText().equals("2026-11-04")) nov4 = d;
+        }
+        assertThat(oct27.get("approvedAway").asInt()).isEqualTo(1);
+        assertThat(nov4.get("approvedAway").asInt()).isEqualTo(2);   // Kiran, Divya
+        assertThat(nov4.get("pendingAway").asInt()).isEqualTo(1);   // Sam (R04); Asha's R18 ends 3 Nov
+        getAs(login("priya"), "/api/analytics/forecast").andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("errors never leak stack traces and always use {code, message, details}")
     void errorEnvelope() throws Exception {
         postAs(login("asha"), "/api/leaves", "{\"leaveTypeCode\":\"ANNUAL\"}")

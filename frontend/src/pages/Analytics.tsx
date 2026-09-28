@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api'
 import { ErrorBox, PageHeader, Spinner, STATUS_LABEL } from '../components/ui'
 
@@ -18,6 +19,43 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-1 text-3xl font-semibold text-slate-900">{value}</p>
       {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+    </div>
+  )
+}
+
+function ForecastCard() {
+  const [teamId, setTeamId] = useState<number | undefined>()
+  const dir = useQuery({ queryKey: ['directory'], queryFn: api.directory })
+  const { data, error } = useQuery({ queryKey: ['forecast', teamId], queryFn: () => api.forecast(teamId, 30) })
+  const rows = data?.days.filter((d) => d.workingDay).map((d) => ({ ...d, label: d.date.slice(5) })) ?? []
+  const limit = data ? (data.teamSize * data.thresholdPercent) / 100 : 0
+  return (
+    <div className="card p-5 lg:col-span-2">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-slate-700">Team capacity forecast: next 30 days</h2>
+        <select className="input !w-auto" aria-label="Team" value={teamId ?? ''} onChange={(e) => setTeamId(e.target.value ? Number(e.target.value) : undefined)}>
+          <option value="">All teams</option>
+          {dir.data?.teams.filter((t) => t.name !== 'HR').map((t) => <option key={t.id} value={t.id}>{t.name} ({t.size})</option>)}
+        </select>
+      </div>
+      <p className="mb-3 text-xs text-slate-500">
+        People away per working day: approved plus pending (tentative) leave. Red line = coverage threshold ({data?.thresholdPercent}% of {data?.teamSize} = {limit.toFixed(1)} people).
+        Dashed line = average away per day over the last 90 days ({data?.historicalAvgAway}). Plain arithmetic on known leave, not a prediction model.
+      </p>
+      {error && <ErrorBox error={error} />}
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={rows}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={1} />
+          <YAxis tick={{ fontSize: 12 }} allowDecimals={false} domain={[0, (max: number) => Math.ceil(Math.max(max, limit)) + 1]} />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="approvedAway" name="Approved" stackId="a" fill="#4f46e5" />
+          <Bar dataKey="pendingAway" name="Pending (tentative)" stackId="a" fill="#fbbf24" />
+          <ReferenceLine y={limit} stroke="#e11d48" strokeWidth={2} label={{ value: 'threshold', fill: '#e11d48', fontSize: 11, position: 'insideTopRight' }} />
+          <ReferenceLine y={data?.historicalAvgAway ?? 0} stroke="#64748b" strokeDasharray="5 4" />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }
@@ -67,6 +105,8 @@ export default function Analytics() {
             </PieChart>
           </ResponsiveContainer>
         </div>
+
+        <ForecastCard />
 
         <div className="card p-5 lg:col-span-2">
           <h2 className="mb-4 text-sm font-semibold text-slate-700">Load by team</h2>

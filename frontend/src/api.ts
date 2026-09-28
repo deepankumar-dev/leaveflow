@@ -140,6 +140,14 @@ export interface Directory {
   managers: { id: number; name: string; teamName: string | null }[]
 }
 
+export interface Forecast {
+  scope: string
+  teamSize: number
+  thresholdPercent: number
+  historicalAvgAway: number
+  days: { date: string; workingDay: boolean; approvedAway: number; pendingAway: number; projectedAwayPercent: number }[]
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details: string[] = []) {
     super(message)
@@ -206,6 +214,7 @@ export const api = {
   delegate: (delegateId: number, fromDate: string, toDate: string) =>
     request<Delegation>('POST', '/api/delegations', { delegateId, fromDate, toDate }),
   revokeDelegation: (id: number) => request<void>('DELETE', `/api/delegations/${id}`),
+  forecast: (teamId?: number, days = 30) => request<Forecast>('GET', '/api/analytics/forecast' + qs({ teamId, days })),
   directory: () => request<Directory>('GET', '/api/directory'),
   analytics: () => request<Analytics>('GET', '/api/analytics/summary'),
   holidays: () => request<Holiday[]>('GET', '/api/holidays'),

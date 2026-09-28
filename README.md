@@ -67,11 +67,11 @@ flowchart LR
 
 ## Tests
 
-`cd backend && ./mvnw test`: **47 tests**, all passing.
+`cd backend && ./mvnw test`: **48 tests**, all passing.
 
 - `StateMachineTest` (4): every status × action × target against the rules table, terminal states.
 - `RuleEngineTest` (21): pro-rata (joins on 1st/last day, Jan 1, Dec 31, before/after the year, rounding) and working days.
-- `ApiFlowTest` (22, over HTTP on the seed): auth, role and row-level access, balances, conflict flag, insufficient
+- `ApiFlowTest` (23, over HTTP on the seed): auth, role and row-level access, balances, conflict flag, insufficient
   balance (422), no-working-days, overlap (409), self-approval blocked, full delegate → HR happy path with balance
   checks at each step and cancel, rejection needs a comment, escalation (simulate and scheduled, idempotent), a
   concurrent double approval, lists/filters, calendar, analytics, notifications, delegation, holidays, error format.
@@ -85,7 +85,8 @@ flowchart LR
    one: approval chain, audit timeline. Approve; sign in as *Meena* and give the final approval.
 4. **Escalation (40s).** As *Priya* open Ravi's request → "Simulate timeout". It becomes *Escalated to HR*; *Meena* sees
    it under Escalations. (Real timeouts fire after 1 minute for new requests.)
-5. **HR view (20s).** Meena → Analytics: trend, status mix, escalation rate, team load.
+5. **HR view (20s).** Meena → Analytics: trend, status mix, escalation rate, team load, and the 30-day capacity forecast
+   (approved + pending leave vs the coverage threshold; plain arithmetic, not a prediction model).
 
 ## Known gaps
 
