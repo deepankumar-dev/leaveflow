@@ -1,5 +1,6 @@
 package com.hackathon.leave.service;
 
+import org.springframework.context.annotation.Profile;
 import static com.hackathon.leave.model.LeaveStatus.*;
 
 import com.hackathon.leave.config.ClockConfig;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  * the reference "now" of the seed is 2026-10-12 10:00 IST. Rows are written directly (not through the workflow) so
  * timestamps, steps and audit events match the document exactly.
  */
+@Profile("demo")
 @Slf4j
 @Service
 public class SeedService {

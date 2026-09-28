@@ -47,4 +47,7 @@ public class User {
     private LocalDate joinDate;
 
     private boolean active = true;
+
+    /** Set for new accounts and after an admin reset: every API call except changing the password is refused. */
+    private boolean mustChangePassword;
 }

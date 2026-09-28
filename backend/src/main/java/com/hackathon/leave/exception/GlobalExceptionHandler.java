@@ -9,10 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** One error envelope for the whole API; never leaks stack traces. */
@@ -41,6 +43,16 @@ public class GlobalExceptionHandler {
     ResponseEntity<ErrorResponse> malformed(Exception e) {
         return body(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "The request is malformed or a parameter is missing/invalid",
                 List.of());
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<ErrorResponse> noRoute(NoResourceFoundException e) {
+        return body(HttpStatus.NOT_FOUND, "NOT_FOUND", "No such endpoint", List.of());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ErrorResponse> badMethod(HttpRequestMethodNotSupportedException e) {
+        return body(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "That method is not supported here", List.of());
     }
 
     @ExceptionHandler(AccessDeniedException.class)

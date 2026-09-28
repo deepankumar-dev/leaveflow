@@ -43,6 +43,7 @@ public class LeaveMapper {
         return new UserDto(u.getId(), u.getName(), u.getEmail(), u.getRole(),
                 u.getTeam() == null ? null : u.getTeam().getId(), u.getTeam() == null ? null : u.getTeam().getName(),
                 u.getManager() == null ? null : u.getManager().getId(),
-                u.getManager() == null ? null : u.getManager().getName(), u.getJoinDate());
+                u.getManager() == null ? null : u.getManager().getName(), u.getJoinDate(), u.isActive(),
+                u.isMustChangePassword());
     }
 }

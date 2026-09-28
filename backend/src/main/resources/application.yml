@@ -1,35 +1,64 @@
+# Real-world defaults. Everything environment-specific comes from environment variables (see README / .env.example).
+# The optional "demo" profile (application-demo.yml) loads fixed sample data with an in-memory database.
 spring:
   application:
     name: leave
   datasource:
-    url: jdbc:h2:mem:leavedb;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    # Persistent file database by default (zero setup). For production use the "postgres" profile.
+    url: ${DB_URL:jdbc:h2:file:./data/leaveflow;AUTO_SERVER=TRUE}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
   h2:
     console:
-      enabled: true
-      path: /h2-console
+      enabled: false
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     open-in-view: false
     show-sql: false
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
 
 server:
-  port: 8080
+  port: ${PORT:8080}
+  error:
+    include-stacktrace: never
+    include-message: never
 
 springdoc:
   swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
     path: /swagger-ui.html
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
 
 leave:
   annual-quota-default: 24
-  escalation-timeout-minutes: 1
-  escalation-check-seconds: 30
+  # A manager step older than this escalates to HR (RULES section 7). 2880 min = 48 h.
+  escalation-timeout-minutes: ${ESCALATION_TIMEOUT_MINUTES:2880}
+  escalation-check-seconds: ${ESCALATION_CHECK_SECONDS:300}
   conflict-threshold: 0.30
   jwt:
-    secret: ${JWT_SECRET:change-me-please-use-a-long-random-secret-at-least-32-bytes}
-    expiry-minutes: 480
-  # Demo time: the fixed seed scenarios are dated around this instant (docs/SEED_SCENARIOS.md). Remove to use real time.
-  demo-now: "2026-10-12T10:00:00+05:30"
+    # Required: at least 32 characters. There is deliberately no default.
+    secret: ${JWT_SECRET:}
+    expiry-minutes: ${JWT_EXPIRY_MINUTES:480}
+  # Comma-separated browser origins allowed to call the API (only needed when the UI is on another origin).
+  cors-origins: ${CORS_ORIGINS:}
+  login:
+    max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
+    lock-minutes: ${LOGIN_LOCK_MINUTES:15}
+  mail:
+    # Emails are queued in the outbox either way; they are only delivered when MAIL_HOST is set.
+    from: ${MAIL_FROM:leaveflow@localhost}
+  bootstrap:
+    # Used once, on an empty database, to create the first HR administrator.
+    admin-name: ${ADMIN_NAME:Administrator}
+    admin-email: ${ADMIN_EMAIL:}
+    admin-password: ${ADMIN_PASSWORD:}

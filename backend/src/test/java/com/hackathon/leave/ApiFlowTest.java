@@ -40,6 +40,7 @@ import org.springframework.test.web.servlet.ResultActions;
  * starts at the seed's reference "now" (2026-10-12 10:00 IST); the seed is reloaded before every test.
  */
 @SpringBootTest
+@org.springframework.test.context.ActiveProfiles("demo")
 @AutoConfigureMockMvc
 @Import(ApiFlowTest.TestClockConfig.class)
 class ApiFlowTest {

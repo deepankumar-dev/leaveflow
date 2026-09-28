@@ -1,0 +1,30 @@
+# Activate with: SPRING_PROFILES_ACTIVE=demo   (or -Dspring-boot.run.profiles=demo)
+# In-memory database, fixed sample data (docs/SEED_SCENARIOS.md), a demo clock and demo-only endpoints.
+spring:
+  datasource:
+    url: jdbc:h2:mem:leavedb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true
+
+leave:
+  bcrypt-cost: 6
+  escalation-timeout-minutes: 1
+  escalation-check-seconds: 30
+  jwt:
+    secret: demo-only-secret-change-me-0123456789abcdef
+  # The fixed seed dates are around this instant; the clock keeps ticking from here.
+  demo-now: "2026-10-12T10:00:00+05:30"

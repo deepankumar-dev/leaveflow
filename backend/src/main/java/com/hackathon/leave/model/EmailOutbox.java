@@ -28,4 +28,7 @@ public class EmailOutbox {
 
     private Instant createdAt;
     private boolean sent;
+
+    /** Delivery attempts so far; delivery gives up after 5. */
+    private int attempts;
 }

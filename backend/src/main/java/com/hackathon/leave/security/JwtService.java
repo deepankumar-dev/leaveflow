@@ -20,7 +20,12 @@ public class JwtService {
     private final long expiryMillis;
 
     public JwtService(LeaveProperties props) {
-        this.key = Keys.hmacShaKeyFor(props.jwt().secret().getBytes(StandardCharsets.UTF_8));
+        String secret = props.jwt().secret();
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("JWT_SECRET must be set to a random value of at least 32 characters "
+                    + "(for example: openssl rand -base64 48)");
+        }
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expiryMillis = props.jwt().expiryMinutes() * 60_000L;
     }
 
@@ -34,6 +39,7 @@ public class JwtService {
                 .subject(String.valueOf(u.getId()))
                 .claim("email", u.getEmail())
                 .claim("role", u.getRole().name())
+                .claim("mcp", u.isMustChangePassword())
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + expiryMillis))
                 .signWith(key)
@@ -44,7 +50,8 @@ public class JwtService {
         try {
             Claims c = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
             return Optional.of(new AuthUser(Long.valueOf(c.getSubject()), c.get("email", String.class),
-                    Role.valueOf(c.get("role", String.class))));
+                    Role.valueOf(c.get("role", String.class)),
+                    Boolean.TRUE.equals(c.get("mcp", Boolean.class))));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }

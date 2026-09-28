@@ -1,5 +1,6 @@
 package com.hackathon.leave.service;
 
+import org.springframework.context.annotation.Profile;
 import com.hackathon.leave.dto.LeaveRequestDto;
 import com.hackathon.leave.exception.ApiException;
 import com.hackathon.leave.model.LeaveRequest;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Demo-only helpers: force a timeout so escalation can be shown without waiting. */
+@Profile("demo")
 @Service
 public class DemoService {
 

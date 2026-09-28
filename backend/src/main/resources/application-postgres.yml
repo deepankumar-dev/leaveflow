@@ -4,10 +4,4 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/leavedb}
     driver-class-name: org.postgresql.Driver
     username: ${DB_USER:leave}
-    password: ${DB_PASSWORD:leave}
-  h2:
-    console:
-      enabled: false
-  jpa:
-    hibernate:
-      ddl-auto: update
+    password: ${DB_PASSWORD:}

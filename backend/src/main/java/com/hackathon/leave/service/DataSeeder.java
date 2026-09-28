@@ -1,11 +1,13 @@
 package com.hackathon.leave.service;
 
+import org.springframework.context.annotation.Profile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 /** Loads the fixed demo data on first start (an empty database only). */
+@Profile("demo")
 @Slf4j
 @Component
 public class DataSeeder implements ApplicationRunner {

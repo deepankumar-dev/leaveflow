@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EmailOutboxRepository extends JpaRepository<EmailOutbox, Long> {
     List<EmailOutbox> findBySentFalse();
+
+    List<EmailOutbox> findBySentFalseAndAttemptsLessThanOrderByIdAsc(int maxAttempts);
 }

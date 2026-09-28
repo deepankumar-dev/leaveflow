@@ -1,5 +1,6 @@
 package com.hackathon.leave.controller;
 
+import com.hackathon.leave.dto.ChangePasswordRequest;
 import com.hackathon.leave.dto.LoginRequest;
 import com.hackathon.leave.dto.LoginResponse;
 import com.hackathon.leave.dto.UserDto;
@@ -29,6 +30,14 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(auth.login(request));
+    }
+
+    @Operation(summary = "Change the caller's password; returns a fresh token", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/change-password")
+    public ResponseEntity<LoginResponse> changePassword(@AuthenticationPrincipal AuthUser me,
+                                                        @Valid @RequestBody ChangePasswordRequest request) {
+        return ResponseEntity.ok(auth.changePassword(me.id(), request));
     }
 
     @Operation(summary = "The currently authenticated user", security = @SecurityRequirement(name = "bearerAuth"))

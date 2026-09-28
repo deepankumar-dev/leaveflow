@@ -140,10 +140,10 @@ public class WorkflowService {
             }
             case ESCALATE -> {
                 decideStep(request, ApprovalStage.MANAGER, Decision.ESCALATED, now,
-                        "Manager step timed out after " + props.escalationTimeoutMinutes() + " minute(s)");
+                        "Manager step timed out after " + humanTimeout());
                 openHrStep(request);
                 audit.record(request, null, "ESCALATED", from, to,
-                        "Manager step timed out after " + props.escalationTimeoutMinutes() + " minute(s)");
+                        "Manager step timed out after " + humanTimeout());
             }
             case CANCEL -> {
                 if (from == APPROVED) {
@@ -326,6 +326,11 @@ public class WorkflowService {
                 }
             }
         }
+    }
+
+    private String humanTimeout() {
+        int m = props.escalationTimeoutMinutes();
+        return m >= 60 && m % 60 == 0 ? m / 60 + " hour(s)" : m + " minute(s)";
     }
 
     private List<User> hrUsers(User exclude) {

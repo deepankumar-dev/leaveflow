@@ -1,5 +1,6 @@
 package com.hackathon.leave.controller;
 
+import org.springframework.context.annotation.Profile;
 import com.hackathon.leave.dto.LeaveRequestDto;
 import com.hackathon.leave.dto.ResetSeedResponse;
 import com.hackathon.leave.security.AuthUser;
@@ -13,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+@Profile("demo")
 @Tag(name = "Demo")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
