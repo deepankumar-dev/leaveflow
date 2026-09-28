@@ -1,98 +1,123 @@
 # LeaveFlow: leave management with an explicit approval chain
 
-Employee → Manager → HR, with escalation on timeout, team-conflict *flags* (never auto-rejects), pro-rated balances
-that explain themselves, delegation, an audit timeline, and role-based UIs.
+Employee → Manager → HR, with escalation on timeout, team-conflict flags (never auto-rejects), pro-rated balances that
+explain themselves, delegation, an audit timeline, and role-based screens. HR manages people and teams in the app.
 
-The business rules are frozen in [`docs/RULES.md`](docs/RULES.md), the fixed demo data in
-[`docs/SEED_SCENARIOS.md`](docs/SEED_SCENARIOS.md), the API contract in [`docs/openapi.yaml`](docs/openapi.yaml).
+Business rules: [`docs/RULES.md`](docs/RULES.md). API contract: [`docs/openapi.yaml`](docs/openapi.yaml)
+(plus `/api/admin/*`, `/api/auth/change-password`, `/api/public/config`, `/api/directory`, `/api/analytics/forecast`).
 
-## Run
+## Run it for real
+
+### Option A: Docker (PostgreSQL + API + web)
+
+```bash
+cp .env.example .env      # set DB_PASSWORD, JWT_SECRET (32+ random chars), ADMIN_EMAIL, optionally MAIL_*
+docker compose up -d --build
+```
+
+Open `http://localhost` (or `WEB_PORT`). Put a TLS-terminating reverse proxy (or load balancer) in front for HTTPS.
+
+### Option B: run the pieces yourself
 
 Needs JDK 17+ and Node 18+.
 
 ```bash
-# backend  (http://localhost:8080, Swagger UI at /swagger-ui.html)
-cd backend && ./mvnw spring-boot:run          # Windows: mvnw.cmd spring-boot:run
+# backend: persistent file database in backend/data by default; set DB_URL/DB_USER/DB_PASSWORD and
+# SPRING_PROFILES_ACTIVE=postgres for PostgreSQL
+export JWT_SECRET="$(openssl rand -base64 48)"
+export ADMIN_EMAIL=hr@yourcompany.com        # first HR administrator (created once, on an empty database)
+cd backend && ./mvnw spring-boot:run          # http://localhost:8080
 
-# frontend (http://localhost:5173, proxies /api to :8080)
-cd frontend && npm install && npm run dev
+# frontend (dev server proxies /api to :8080); for production `npm run build` and serve dist/ behind the same origin
+cd frontend && npm install && npm run dev     # http://localhost:5173
 ```
 
-Demo logins (password `Password@123`): `asha@` (employee), `ravi@` (new joiner), `priya@` (manager), `arjun@`
-(manager), `meena@` (HR), all `@leave.demo`. The login page has one-click buttons.
+### First sign-in and setup
 
-The app runs on a demo clock (`leave.demo-now` in `application.yml`, 2026-10-12 10:00 IST) so the fixed seed dates line
-up. Remove it to use real time. HR can reload the seed from the sidebar ("Reset demo data").
+1. Sign in as `ADMIN_EMAIL`. With no `ADMIN_PASSWORD` a one-time password is printed once in the backend log.
+   You are forced to choose your own password before anything else works (the server enforces this).
+2. **People & teams**: add your teams, then managers, then employees (each with a temporary password they must change
+   at first sign-in). Set each person's join date: it drives pro-rating of annual leave in their joining year.
+3. **Holidays**: add your public holidays (they are excluded from working days).
 
-## Architecture
+There is no sample data and no demo login in this mode.
+
+### Configuration (environment variables)
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `JWT_SECRET` | signing key, **required**, 32+ chars | none (startup fails) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | first HR administrator, used once | none |
+| `DB_URL`, `DB_USER`, `DB_PASSWORD`, `DB_DRIVER` | database | H2 file `./data/leaveflow` |
+| `ESCALATION_TIMEOUT_MINUTES`, `ESCALATION_CHECK_SECONDS` | manager step deadline and check interval | 2880 (48 h), 300 |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_FROM` | SMTP; empty host = emails only queued | off |
+| `CORS_ORIGINS` | comma-separated origins, only if the UI is on another origin | none (same origin) |
+| `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES` | sign-in lockout | 5, 15 |
+| `SWAGGER_ENABLED` | API docs at `/swagger-ui.html` | false |
+
+### Demo mode (optional)
+
+`SPRING_PROFILES_ACTIVE=demo` (or `./mvnw spring-boot:run -Dspring-boot.run.profiles=demo`) loads the fixed sample data
+in [`docs/SEED_SCENARIOS.md`](docs/SEED_SCENARIOS.md) into an in-memory database, runs a demo clock (2026-10-12) with a
+1-minute escalation timeout, enables Swagger, and adds demo-only screens (one-click logins, "Simulate timeout",
+"Reset demo data"). Password for all demo users is `Password@123`.
+
+## How it works
+
+An employee's request goes to their manager, then HR. A manager's own leave goes to HR. A manager step that is not
+decided within the timeout escalates to HR; **the system never approves or rejects on anyone's behalf**. Nobody decides
+their own request. Team conflicts (over 30% away) are flagged, never blocked. Balances are reserved on apply and used on
+final approval; pro-rata uses the join month fully, rounded to 0.5. Managers can delegate approvals to another manager
+for a date range.
+
+Screens: employees apply (live check of working days, balance and conflicts, with alternative dates), see balances
+with their calculation, and track requests with an audit timeline. Managers get an approvals inbox with a countdown,
+a team calendar and delegation. HR gets the queue, escalations, analytics with a 30-day capacity forecast, holidays,
+and people & teams.
 
 ```mermaid
 flowchart LR
   UI[React + TanStack Query] -->|JWT| API[Controllers: thin, @PreAuthorize]
   API --> LS[LeaveService]
-  API --> RO[Read services: calendar, analytics, balances...]
+  API --> AD[AdminService: people & teams]
   LS --> RE[RuleEngine: working days, pro-rata, conflicts]
   LS --> WF[WorkflowService: the only place status changes]
   ESC[EscalationScheduler] --> ES[EscalationService] --> WF
   WF --> BAL[BalanceService]
   WF --> AUD[AuditService: append-only]
-  WF --> NOT[NotificationService: in-app + simulated email]
-  WF --> DB[(H2)]
+  WF --> NOT[NotificationService: in-app + email outbox]
+  MAIL[EmailDispatcher: SMTP] --> NOT
+  WF --> DB[(H2 file / PostgreSQL)]
 ```
 
-## State machine (`WorkflowService`)
+## Security
 
-| From | To | Trigger |
-|---|---|---|
-| (new) | PENDING_MANAGER / PENDING_HR | employee applies / manager applies (own leave goes to HR) |
-| PENDING_MANAGER | PENDING_HR or APPROVED | manager (or delegate) approves; APPROVED if the type needs no HR |
-| PENDING_MANAGER | ESCALATED | timeout (system) |
-| PENDING_MANAGER / ESCALATED / PENDING_HR | REJECTED | current approver rejects, comment required |
-| ESCALATED / PENDING_HR | APPROVED | HR approves |
-| any open state | CANCELLED | owner cancels (HR may cancel an approved request) |
-
-## Design decisions
-
-- **Explicit transition table**, not Spring Statemachine: a readable map is what "explicit" means, and a test checks
-  every (from, action, to) combination against `RULES.md`.
-- **Flag, never reject**, for team conflicts. The approver decides with the information in front of them.
-- **Escalation never auto-approves or auto-rejects.** It only moves the request to HR. Deciding on someone's behalf is
-  a compliance risk; the system only makes sure a human is looking at it.
-- **Optimistic locking** (`@Version`) on requests: two simultaneous decisions cannot both apply; the loser gets 409.
-- **`Clock` injected everywhere**, so tests and the demo can control time.
-- **Escalation runs one transaction per request** and is idempotent. For multiple instances you would add ShedLock
-  (not implemented).
-- **Authorization is on the backend**: role checks with `@PreAuthorize`, ownership and approver checks in the services.
-  The UI only hides what you cannot use.
+- All authorization is enforced on the backend (role checks plus ownership/approver checks in the services).
+- Passwords are BCrypt-hashed (cost 12); policy is 10+ characters with a letter and a digit. New and reset accounts must
+  change the temporary password before any other call works (enforced with a token claim, not just the UI).
+- Sign-in lockout after repeated failures (also for unknown emails, so accounts cannot be probed).
+- The JWT secret has no default; H2 console and Swagger are off unless enabled; errors never include stack traces;
+  people are deactivated, never deleted; guards prevent removing the last HR user or orphaning a team's employees.
+- Requests use optimistic locking: two simultaneous decisions cannot both apply.
 
 ## Tests
 
-`cd backend && ./mvnw test`: **48 tests**, all passing.
+`cd backend && ./mvnw test`: **55 tests**, all passing.
 
-- `StateMachineTest` (4): every status × action × target against the rules table, terminal states.
-- `RuleEngineTest` (21): pro-rata (joins on 1st/last day, Jan 1, Dec 31, before/after the year, rounding) and working days.
-- `ApiFlowTest` (23, over HTTP on the seed): auth, role and row-level access, balances, conflict flag, insufficient
-  balance (422), no-working-days, overlap (409), self-approval blocked, full delegate → HR happy path with balance
-  checks at each step and cancel, rejection needs a comment, escalation (simulate and scheduled, idempotent), a
-  concurrent double approval, lists/filters, calendar, analytics, notifications, delegation, holidays, error format.
-
-## 3-minute demo
-
-1. **Pro-rata (30s).** Sign in as *Ravi* → My balances: `24 × 6/12 = 12.0`, with the formula shown.
-2. **Conflict flag (40s).** Sign in as *Asha* → Apply, Annual, 4–5 Nov 2026: the live check flags team coverage and
-   offers "Try these dates instead". Submitting is still allowed.
-3. **Approval chain + delegation (50s).** *Priya* → Inbox: Arjun's requests are here because he delegated to her. Open
-   one: approval chain, audit timeline. Approve; sign in as *Meena* and give the final approval.
-4. **Escalation (40s).** As *Priya* open Ravi's request → "Simulate timeout". It becomes *Escalated to HR*; *Meena* sees
-   it under Escalations. (Real timeouts fire after 1 minute for new requests.)
-5. **HR view (20s).** Meena → Analytics: trend, status mix, escalation rate, team load, and the 30-day capacity forecast
-   (approved + pending leave vs the coverage threshold; plain arithmetic, not a prediction model).
+- `StateMachineTest` (4), `RuleEngineTest` (21): transitions vs the rules table; pro-rata and working days.
+- `ApiFlowTest` (23, demo profile): the full workflow over HTTP on the sample data, including concurrent approval,
+  escalation, delegation, forecast, access control.
+- `RealModeTest` (7, production configuration): first-run admin, forced password change, HR creating people, a real
+  request approved end to end, safety guards, password reset, lockout, demo endpoints absent.
 
 ## Known gaps
 
-  documented transitions.
-- Suggested alternative dates are found by the browser probing shifted windows through the preview endpoint, not by a
-  dedicated backend search.
-- Email is simulated (outbox rows). H2 is in-memory (a Postgres profile is provided but untested).
-- Escalation is one tier (manager → HR), as the frozen rules define; there is no reminder or skip-level tier.
-- `GET /api/directory` is an addition to the contract (teams and managers for pickers).
+- **Not verified here:** the Docker files and PostgreSQL profile (no Docker/Postgres available), SMTP delivery, and
+  the new screens in a browser (the browser tool disconnected; the API behind them is covered by tests and a live
+  smoke test).
+- Lockout counters are in memory (per instance); for several backend instances add a shared store. The escalation
+  scheduler would need ShedLock (or similar) with several instances.
+- No password reset by email, SSO, multi-factor sign-in, or year-end carry-forward (not in the rules).
+- Escalation is one tier (manager → HR) as the rules define. Suggested alternative dates are probed by the browser
+  through the preview endpoint. Schema changes use Hibernate `ddl-auto: update`; use Flyway/Liquibase for controlled
+  migrations in a strict production setup.
