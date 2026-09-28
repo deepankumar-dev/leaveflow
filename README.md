@@ -17,6 +17,7 @@ recording that. The tests, browser checks and results reported in this README we
 Needs JDK 17+ and Node 18+. Two terminals:
 
 ```bash
+
 # terminal 1: backend, demo profile (in-memory database, sample company, demo clock, Swagger)
 cd backend
 SPRING_PROFILES_ACTIVE=demo ./mvnw spring-boot:run        # Windows PowerShell: $env:SPRING_PROFILES_ACTIVE="demo"; .\mvnw.cmd spring-boot:run
